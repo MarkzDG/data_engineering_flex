@@ -27,7 +27,7 @@ earthquake = response.json()
 # Configurar la conexión
 dbname = "data-engineer-database"
 user = "marcosdanielgnzlz_coderhouse"
-password = input("Ingresar la contraseña: ")  # pass = 3Qi14460Fm 
+password = input("Ingresar la contraseña: ")  #adjunto en el comentario de la entrega 
 host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
 port = "5439"
 
