@@ -5,7 +5,7 @@ En este repositorio, he compartido un script en Python que me permitió extraer 
 
 ## Elección de la API de Terremotos
 
-Decidí utilizar la API de terremotos debido a su capacidad de proporcionar datos relevantes y actualizados. A pesar de que la API requiere intervalos de tiempo fijos, implementé una solución para obtener datos en tiempo real incorporando la fecha y hora del sistema en la URL de la API. Seleccioné una fecha de inicio que coincidiera con el comienzo del curso para limitar el conjunto de datos y permitir un seguimiento cronológico.
+Decidí utilizar la API de terremotos de la [USGS](https://www.usgs.gov/programs/earthquake-hazards) debido a su capacidad de proporcionar datos relevantes y actualizados sobre eventos sísmicos. A pesar de que la API requiere intervalos de tiempo fijos, implementé una solución para obtener datos en tiempo real incorporando la fecha y hora del sistema en la URL de la API. Seleccioné una fecha de inicio que coincidiera con el comienzo del curso para limitar el conjunto de datos y permitir un seguimiento cronológico.
 
 ## Contenido del Repositorio
 
