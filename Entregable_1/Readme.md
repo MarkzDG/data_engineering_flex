@@ -12,7 +12,3 @@ Decidí utilizar la API de terremotos de la [USGS](https://www.usgs.gov/programs
 - `Entregable_1_Gonzalez_Marcos.py`: Este archivo contiene el código Python que desarrollé para extraer datos de terremotos desde la API y cargarlos en la base de datos de Redshift.
 - `Entregable_1_creacion_tabla_Gonzalez_Marcos.txt`: Aquí se encuentra el script SQL que diseñé para crear la tabla en la base de datos de Redshift, donde almacenaré la información de los terremotos.
 
-
-## Notas
-
-Desarrollé este proyecto como parte de [Data Engineering Flex] en [Coderhouse]. Elegí el tema de terremotos para demostrar la capacidad del script en el manejo de datos en tiempo real, pero su estructura y enfoque son aplicables a otros conjuntos de datos.
