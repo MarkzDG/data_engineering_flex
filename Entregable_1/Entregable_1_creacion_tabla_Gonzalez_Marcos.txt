@@ -1,3 +1,33 @@
 CREATE TABLE terremotos (
     id INT PRIMARY KEY
 );
+
+ALTER TABLE terremotos
+ADD COLUMN time BIGINT;
+
+ALTER TABLE terremotos
+ADD COLUMN place VARCHAR(255);
+
+ALTER TABLE terremotos
+ADD COLUMN magtype VARCHAR(3);
+
+ALTER TABLE terremotos
+ADD COLUMN alert VARCHAR(6);
+
+ALTER TABLE terremotos
+ADD COLUMN sig INT;
+
+ALTER TABLE terremotos
+ADD COLUMN felt INT;
+
+ALTER TABLE terremotos
+ADD COLUMN tsunami INT;
+
+ALTER TABLE terremotos
+ADD COLUMN nst INT;
+
+ALTER TABLE terremotos
+ADD COLUMN url VARCHAR(255);
+
+ALTER TABLE terremotos
+ALTER COLUMN id TYPE VARCHAR(10);
