@@ -1,6 +1,13 @@
+#%% Modulos
 import requests
 import datetime
+import os
+from dotenv import load_dotenv, dotenv_values, find_dotenv
+import os
 from sqlalchemy import create_engine
+#%% Configuración para en .env
+dotenv_path = "C:/Users/User/Desktop/Cursos/Data Engineer/Entregable 2/.env"
+env = load_dotenv(find_dotenv())
 
 #%% 
 
@@ -20,16 +27,28 @@ api_url = f"{base_url}&{endtime_param}&{starttime_param}"
 
 # Consulta a la API
 response = requests.get(api_url)
-earthquake = response.json()
+if response.status_code == 200:  # Verifica si la solicitud fue exitosa
+    earthquake_data = response.json()
+    features = earthquake_data.get('features', [])
+
+    for feature in features:
+        properties = feature.get('properties', {})
+        mag = properties.get('mag')
+        place = properties.get('place')
+        time = properties.get('time')
+
+        print(f"Mag: {mag}, Place: {place}, Time: {time}")
+else:
+    print("La solicitud a la API falló.")
 
 #%%
 
 # Configurar la conexión
-dbname = "data-engineer-database"
-user = "marcosdanielgnzlz_coderhouse"
-password = input("Ingresar la contraseña: ")  #adjunto en el comentario de la entrega 
-host = "data-engineer-cluster.cyhh5bfevlmn.us-east-1.redshift.amazonaws.com"
-port = "5439"
+dbname = os.getenv('DBNAME')
+user = os.getenv('USER')
+password = os.getenv('PASSWORD')
+host = os.getenv('HOST')
+port = os.getenv('PORT')
 
 # Crea la cadena de conexión
 conn_string = f"postgresql://{user}:{password}@{host}:{port}/{dbname}"
@@ -46,3 +65,5 @@ try:
         # Si algo sale mal, muestra un mensaje de error junto con la descripción de la excepción
 except Exception as e:
     print("Error al conectar a la base de datos:", e)
+
+# %%
