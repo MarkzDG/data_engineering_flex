@@ -5,7 +5,7 @@ from dotenv import load_dotenv, dotenv_values, find_dotenv
 import os
 from sqlalchemy import create_engine
 import pandas as pd
-import psycopg
+import psycopg2
 import concurrent.futures
 
 #%% Configuración para el archivo .env
@@ -17,7 +17,7 @@ env = load_dotenv(find_dotenv())
 current_time_iso = datetime.utcnow().isoformat()
 
 # Fecha de inicio que mantengo constante
-start_time_iso = "2023-09-01T19:00:00"
+start_time_iso = "2023-07-25T19:00:00"
 
 # Construir la URL de la API con los parámetros actualizados
 base_url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
@@ -52,7 +52,7 @@ except Exception as e:
 
 #%% Creo una conexión a la tabla para verificar que tipo de objeto admite cada columna
 
-conn = psycopg.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
+conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
 cur = conn.cursor()
 
 # Ejecutar una consulta para obtener información de las columnas de la tabla "terremotos"
@@ -78,18 +78,19 @@ cur.close()
 conn.close()
 
 #%% Carga de los datos
-conn = psycopg.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
+
+conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
 cur = conn.cursor()
 
 # Crear un conjunto para almacenar IDs de terremotos insertados
 inserted_ids = set()
 
 def process_feature(feature):
-    earthquake_id = feature.get('id') or 'Info. No disponible'
+    earthquake_id = feature['id'] or 'Info. No disponible'
 
     # Verificar si el ID ya ha sido insertado
     if earthquake_id not in inserted_ids:
-        properties = feature.get('properties', {})
+        properties = feature['properties']
         place = properties.get('place') or 'Info. No disponible'
         time_ms = properties.get('time') or 0
         magtype = properties.get('magtype') or 'NA'
@@ -134,15 +135,18 @@ response = requests.get(api_url)
 
 if response.status_code == 200:
     earthquake_data = response.json()
-    features = earthquake_data.get('features', [])
-
+    
+    # Convertir los datos JSON en un DataFrame de Pandas
+    df = pd.DataFrame(earthquake_data['features'])
+    
     # Procesar los datos en paralelo
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(process_feature, features)
+        executor.map(process_feature, df['properties'])
 
     conn.commit()
     print("Se extrajo y almacenó todo correctamente en la base de datos.")
 
+    # Cerrar la conexión a la base de datos
     cur.close()
     conn.close()
 else:
