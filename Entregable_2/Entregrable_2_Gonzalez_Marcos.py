@@ -6,6 +6,7 @@ import os
 from sqlalchemy import create_engine
 import pandas as pd
 import psycopg
+import concurrent.futures
 
 #%% Configuración para el archivo .env
 dotenv_path = "C:/Users/User/Desktop/Cursos/Data Engineer/Entregable 2/.env"
@@ -16,7 +17,7 @@ env = load_dotenv(find_dotenv())
 current_time_iso = datetime.utcnow().isoformat()
 
 # Fecha de inicio que mantengo constante
-start_time_iso = "2023-09-01T19:00:00" #El inicio del curso
+start_time_iso = "2023-09-01T19:00:00"
 
 # Construir la URL de la API con los parámetros actualizados
 base_url = "https://earthquake.usgs.gov/fdsnws/event/1/query?format=geojson"
@@ -76,56 +77,73 @@ for column_info in columns_info:
 cur.close()
 conn.close()
 
-#%% Carga de los datos a la base de datos
+#%% Carga de los datos
+conn = psycopg.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
+cur = conn.cursor()
+
+# Crear un conjunto para almacenar IDs de terremotos insertados
 inserted_ids = set()
 
+def process_feature(feature):
+    earthquake_id = feature.get('id') or 'Info. No disponible'
+
+    # Verificar si el ID ya ha sido insertado
+    if earthquake_id not in inserted_ids:
+        properties = feature.get('properties', {})
+        place = properties.get('place') or 'Info. No disponible'
+        time_ms = properties.get('time') or 0
+        magtype = properties.get('magtype') or 'NA'
+        alert = properties.get('alert') or 'NA'
+        sig = properties.get('sig') or 0
+        felt = properties.get('felt') or 0
+        tsunami = properties.get('tsunami') or 0
+        nst = properties.get('nst') or 0
+        url = properties.get('url') or 'Info. No disponible'
+
+        # Verificar si el ID ya existe en la base de datos
+        cur.execute("SELECT id FROM terremotos WHERE id = %s", (earthquake_id,))
+        existing_id = cur.fetchone()
+
+        if existing_id:
+            # Actualizar el registro existente si el ID ya está en la base de datos
+            cur.execute("""
+                UPDATE terremotos
+                SET place = %s,
+                    time = to_timestamp(%s),
+                    magtype = %s,
+                    alert = %s,
+                    sig = %s,
+                    felt = %s,
+                    tsunami = %s,
+                    nst = %s,
+                    url = %s
+                WHERE id = %s
+            """, (place, time_ms / 1000, magtype, alert, sig, felt, tsunami, nst, url, earthquake_id))
+        else:
+            # Insertar un nuevo registro si el ID no está en la base de datos
+            cur.execute("""
+                INSERT INTO terremotos (id, place, time, magtype, alert, sig, felt, tsunami, nst, url)
+                VALUES (%s, %s, to_timestamp(%s), %s, %s, %s, %s, %s, %s, %s)
+            """, (earthquake_id, place, time_ms / 1000, magtype, alert, sig, felt, tsunami, nst, url))
+
+        # Agregar el ID al conjunto de IDs insertados
+        inserted_ids.add(earthquake_id)
+
+# Realizar la solicitud a la API
 response = requests.get(api_url)
 
 if response.status_code == 200:
     earthquake_data = response.json()
     features = earthquake_data.get('features', [])
 
-    # Establece la conexión a la base de datos
-    conn = psycopg.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
-    cur = conn.cursor()
-
-    # Itera a través de los datos de la API
-    for feature in features:
-        earthquake_id = feature.get('id') or 'Info. No disponible'
-        
-        # Verificar si el ID ya ha sido insertado
-        if earthquake_id not in inserted_ids:
-            properties = feature.get('properties', {})
-            place = properties.get('place') or 'Info. No disponible'
-            time_ms = properties.get('time') or 0
-            time_dt = datetime.utcfromtimestamp(time_ms / 1000)
-            formatted_time = time_dt.strftime('%Y-%m-%d %H:%M:%S')
-            magtype = properties.get('magtype') or 'NA'
-            alert = properties.get('alert') or 'NA'
-            sig = properties.get('sig') or 0
-            felt = properties.get('felt') or 0
-            tsunami = properties.get('tsunami') or 0
-            nst = properties.get('nst') or 0
-            url = properties.get('url') or 'Info. No disponible'
-            
-            # Inserta el registro en la base de datos si no existe
-            cur.execute("""
-                INSERT INTO terremotos (id, place, time, magtype, alert, sig, felt, tsunami, nst, url)
-                SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                WHERE NOT EXISTS (SELECT id FROM terremotos WHERE id = %s);
-            """, (earthquake_id, place, formatted_time, magtype, alert, sig, felt, tsunami, nst, url, earthquake_id))
-            
-            # Agregar el ID al conjunto de IDs insertados
-            inserted_ids.add(earthquake_id)
+    # Procesar los datos en paralelo
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(process_feature, features)
 
     conn.commit()
     print("Se extrajo y almacenó todo correctamente en la base de datos.")
-    
-    # Cierra la conexión a la base de datos
+
     cur.close()
     conn.close()
 else:
     print("La solicitud a la API falló.")
-
-
-
