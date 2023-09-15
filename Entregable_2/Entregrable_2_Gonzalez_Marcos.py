@@ -48,34 +48,8 @@ try:
 except Exception as e:
     print("Error al conectar a la base de datos:", e)
 
-
-#%% Creo una conexión a la tabla para verificar que tipo de objeto admite cada columna
-
-conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
-cur = conn.cursor()
-
-# Ejecutar una consulta para obtener información de las columnas de la tabla "terremotos"
-cur.execute('''
-    SELECT column_name, data_type, character_maximum_length
-    FROM information_schema.columns
-    WHERE table_name = %s;
-''', ('terremotos',))
-
-# Obtener todas las filas del conjunto de resultados
-columns_info = cur.fetchall()
-
-# Imprimir los nombres de las columnas, tipos de datos y longitud máxima (solo para character varying)
-for column_info in columns_info:
-    column_name, data_type, max_length = column_info
-    if max_length is not None and data_type == 'character varying':
-        print(f"Nombre de la Columna: {column_name}, Tipo de Datos: {data_type}, Longitud Máxima: {max_length}")
-    else:
-        print(f"Nombre de la Columna: {column_name}, Tipo de Datos: {data_type}")
-
-cur.close()
-conn.close()
-
 #%% Cargar archivos a la base de datos verificando que no hayan filas duplicadas
+
 inserted_ids = set()
 
 response = requests.get(api_url)
@@ -88,12 +62,16 @@ if response.status_code == 200:
     conn = psycopg2.connect(host=host, dbname=dbname, user=user, password=password, port=port, options="-c client_encoding=UTF8")
     cur = conn.cursor()
 
+    # Obtener los IDs existentes en la base de datos
+    cur.execute("SELECT id FROM terremotos;")
+    existing_ids = set([row[0] for row in cur.fetchall()])
+
     # Iterar a través de los datos de la API
     for feature in features:
         earthquake_id = feature.get('id') or 'Info. No disponible'
 
-        # Verificar si el ID ya ha sido insertado
-        if earthquake_id not in inserted_ids:
+        # Verificar si el ID ya existe en la base de datos
+        if earthquake_id not in existing_ids:
             properties = feature.get('properties', {})
             place = properties.get('place') or 'Info. No disponible'
             time_ms = properties.get('time') or 0
@@ -110,9 +88,8 @@ if response.status_code == 200:
             # Insertar el registro en la base de datos si no existe
             cur.execute("""
                 INSERT INTO terremotos (id, place, time, magtype, alert, sig, felt, tsunami, nst, url)
-                SELECT %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
-                WHERE NOT EXISTS (SELECT id FROM terremotos WHERE id = %s);
-            """, (earthquake_id, place, formatted_time, magtype, alert, sig, felt, tsunami, nst, url, earthquake_id))
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s);
+            """, (earthquake_id, place, formatted_time, magtype, alert, sig, felt, tsunami, nst, url))
 
             # Agregar el ID al conjunto de IDs insertados
             inserted_ids.add(earthquake_id)
