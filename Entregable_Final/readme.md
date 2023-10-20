@@ -4,20 +4,18 @@ Esta guía te ayudará a ejecutar Apache Airflow en un contenedor Docker, junto 
 
 ## Pasos para Ejecutar Apache Airflow
 
+   **Nota**: Antes de ejecutar el contenedor, asegúrate de abrir el archivo `email_task.py` (dentro de la carpeta plugins) y modificar la dirección de correo al que deseas enviar el aviso.
+
 1. **Construye la imagen Docker:**
 
-   Abre una terminal en la ubicación de tu Dockerfile y ejecuta el siguiente comando para construir la imagen Docker. Puedes nombrar la imagen como desees, por ejemplo, `my_airflow_image`:
+   Abrir una terminal en la ubicación de tu Dockerfile y ejecutar el siguiente comando para construir la imagen Docker. Se puede nombrar la imagen como desees, por ejemplo, `my_airflow_image`:
 
    ```bash
    docker build -t my_airflow_image .
 
-2. **Ejecuta el contenedor:**
+2. **Ejecutar el contenedor:**
 
-   Utiliza Docker Compose para ejecutar el contenedor y orquestar los servicios. Asegúrate de tener un archivo `docker-compose.yml` que defina la orquestación de los servicios de Apache Airflow.
-
-   **Nota**: Antes de ejecutar el contenedor, asegúrate de abrir el archivo `send_email_alert` en tu DAG personalizado y modificar la dirección de correo al que deseas enviar el aviso. Puedes hacerlo en la configuración de la función `send_email_alert`.
-
-   Ejecuta el siguiente comando:
+   Ejecutar el siguiente comando en la terminal:
 
    ```bash
    docker-compose up
